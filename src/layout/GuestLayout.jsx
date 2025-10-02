@@ -5,7 +5,7 @@ export default function GuestLayout() {
   return (
     <>
       <AppHeader />
-      <div className="container py-3">
+      <div className="px-3 py-3">
         <Outlet />
       </div>
     </>
