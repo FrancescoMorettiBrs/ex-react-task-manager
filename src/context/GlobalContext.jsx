@@ -1,37 +1,16 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext } from "react";
+import useTasks from "../hook/useTasks";
 
-const GlobalContext = createContext();
+const GlobalContext = createContext(null);
 
 export function GlobalProvider({ children }) {
-  const [tasks, setTasks] = useState([]);
+  const tasksApi = useTasks();
 
-  useEffect(() => {
-    const API_URL = import.meta.env.VITE_API_URL;
-    if (!API_URL) {
-      console.warn("VITE_API_URL non definita. Imposta il valore in .env");
-      return;
-    }
-
-    fetch(`${API_URL}/tasks`)
-      .then((res) => {
-        if (!res.ok) throw new Error(`GET /tasks failed: ${res.status}`);
-        return res.json();
-      })
-      .then((data) => {
-        console.log("[GlobalContext] Tasks ricevuti:", data);
-        setTasks(Array.isArray(data) ? data : []);
-      })
-      .catch((err) => {
-        console.error("[GlobalContext] Errore fetch /tasks:", err);
-      });
-  }, []);
-  const value = { tasks, setTasks };
-
-  return <GlobalContext.Provider value={value}>{children}</GlobalContext.Provider>;
+  return <GlobalContext.Provider value={tasksApi}>{children}</GlobalContext.Provider>;
 }
 
 export function useGlobal() {
-  const cxt = useContext(GlobalContext);
-  if (!cxt) throw new Error("Errore nel context, CONTROLLARE!");
-  return cxt;
+  const ctx = useContext(GlobalContext);
+  if (!ctx) throw new Error("useGlobal deve essere usato dentro <GlobalProvider>");
+  return ctx;
 }
