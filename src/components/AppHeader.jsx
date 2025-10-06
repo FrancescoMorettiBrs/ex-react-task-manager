@@ -15,7 +15,7 @@ export default function AppHeader() {
         <div className="collapse navbar-collapse" id="mainNav">
           <ul className="navbar-nav ms-auto">
             <li className="nav-item">
-              <NavLink end className="nav-link" to="/">
+              <NavLink end className="nav-link" to="/tasks">
                 Lista Task
               </NavLink>
             </li>
