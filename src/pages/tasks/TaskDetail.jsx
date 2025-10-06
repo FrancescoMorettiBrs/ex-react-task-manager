@@ -1,6 +1,8 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useGlobal } from "../../context/GlobalContext";
 import { useState } from "react";
+import Modal from "../../components/Modal";
+import EditTaskModal from "../../components/EditTaskModal";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -12,8 +14,11 @@ function formatDate(value) {
 export default function TaskDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { tasks, loading, error, removeTask } = useGlobal();
+  const { tasks, loading, error, removeTask, updateTask } = useGlobal();
+
   const [deleting, setDeleting] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
   const task = tasks.find((t) => String(t?.id ?? t?._id) === String(id));
 
@@ -35,16 +40,29 @@ export default function TaskDetail() {
   const status = typeof task.status === "string" ? task.status : task.completed === true ? "Done" : task.inProgress === true ? "Doing" : "To do";
   const createdAt = task.createdAt ?? task.created_at ?? null;
 
-  async function handleDelete() {
+  async function confirmDelete() {
     if (deleting) return;
     try {
       setDeleting(true);
       await removeTask(id);
+      setConfirmOpen(false);
       alert("Task eliminata con successo!");
       navigate("/", { replace: true });
     } catch (err) {
+      setConfirmOpen(false);
       alert(err.message || "Errore nell'eliminazione del task");
+    } finally {
       setDeleting(false);
+    }
+  }
+
+  async function handleSave(updatedTask) {
+    try {
+      await updateTask(updatedTask);
+      alert("Task modificata con successo!");
+      setEditOpen(false);
+    } catch (err) {
+      alert(err.message || "Errore nella modifica del task");
     }
   }
 
@@ -52,9 +70,17 @@ export default function TaskDetail() {
     <section className="container py-4">
       <div className="d-flex align-items-center justify-content-between">
         <h1 className="h3 mb-0">{title}</h1>
-        <Link to="/" className="btn btn-sm btn-outline-secondary">
-          ← Indietro
-        </Link>
+        <div className="d-flex gap-2">
+          <button className="btn btn-sm btn-primary" onClick={() => setEditOpen(true)}>
+            Modifica Task
+          </button>
+          <button className="btn btn-sm btn-outline-danger" onClick={() => setConfirmOpen(true)} disabled={deleting}>
+            Elimina Task
+          </button>
+          <Link to="/" className="btn btn-sm btn-outline-secondary">
+            ← Indietro
+          </Link>
+        </div>
       </div>
 
       <hr />
@@ -70,11 +96,23 @@ export default function TaskDetail() {
         <dd className="col-sm-9">{formatDate(createdAt)}</dd>
       </dl>
 
-      <div className="mt-4">
-        <button className="btn btn-outline-danger" onClick={handleDelete} disabled={deleting}>
-          {deleting ? "Eliminazione…" : "Elimina Task"}
-        </button>
-      </div>
+      <Modal
+        title="Confermi l’eliminazione?"
+        content={
+          <div className="p-3">
+            <p className="mb-1">
+              Stai per eliminare <strong>{title}</strong>.
+            </p>
+            <small className="text-body-secondary">Questa azione non è reversibile.</small>
+          </div>
+        }
+        show={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={confirmDelete}
+        confirmText={deleting ? "Eliminazione…" : "Elimina"}
+      />
+
+      <EditTaskModal show={editOpen} onClose={() => setEditOpen(false)} task={task} onSave={handleSave} />
     </section>
   );
 }

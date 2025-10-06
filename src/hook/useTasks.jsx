@@ -119,7 +119,53 @@ export default function useTasks() {
     [API_URL]
   );
 
-  const updateTask = useCallback(async function updateTask(/* id, patch */) {}, []);
+  const updateTask = useCallback(
+    async function updateTask(updatedTask) {
+      if (!API_URL) throw new Error("VITE_API_URL non definita. Imposta il valore in .env");
+      if (!updatedTask || (updatedTask.id == null && updatedTask._id == null)) {
+        throw new Error("Task da aggiornare non valido: manca l'ID.");
+      }
+
+      const taskId = updatedTask.id ?? updatedTask._id;
+
+      const body = {
+        title: String(updatedTask.title ?? "").trim(),
+        description: String(updatedTask.description ?? ""),
+        status: String(updatedTask.status ?? "To do"),
+      };
+
+      let payload;
+      try {
+        const res = await fetch(`${API_URL}/tasks/${encodeURIComponent(taskId)}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+
+        payload = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          const msg = payload?.message || `PUT /tasks/${taskId} failed: ${res.status}`;
+          throw new Error(msg);
+        }
+      } catch (err) {
+        throw new Error(err.message || "Impossibile aggiornare il task");
+      }
+
+      if (!payload?.success) {
+        throw new Error(payload?.message || "Aggiornamento task fallito");
+      }
+
+      const updated = payload.task;
+      if (!updated || typeof updated !== "object") {
+        throw new Error("Risposta API priva di 'task'");
+      }
+      setTasks((prev) => prev.map((t) => (String(t?.id ?? t?._id) === String(taskId) ? updated : t)));
+
+      return updated;
+    },
+    [API_URL]
+  );
 
   return {
     tasks,
